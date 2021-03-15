@@ -1,0 +1,8 @@
+{
+  "short_name": "LOTB",
+  "name": "The Lord of the Bechdel",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
