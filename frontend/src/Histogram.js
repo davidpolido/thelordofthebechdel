@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { max, bin } from "d3-array";
 import { AxisBottom, AxisLeft } from "@vx/axis";
 import { Bar } from "@vx/shape";
+import { tidy, count, asc, arrange, fixedOrder } from "@tidyjs/tidy";
 
 const PADDING = 50;
 const HEIGHT = 500;
@@ -10,14 +11,40 @@ const HEIGHT = 500;
 const yAcessor = (d) => d.count;
 
 export default function Histogram(props) {
-  const scaleX = scaleBand()
-    .range([PADDING, props.width - PADDING])
-    .domain(props.data.map((d) => d[props.x]))
-    .padding(0.1);
+  let sort;
+  switch (props.sort) {
+    case "asc":
+      sort = asc(props.x);
+      break;
+    case "fixed":
+      sort = fixedOrder(props.x, props.sortOrder);
+      break;
+    default:
+      sort = [];
+  }
 
-  const scaleY = scaleLinear()
-    .range([HEIGHT - PADDING, PADDING])
-    .domain([0, max(props.data, yAcessor)]);
+  const countData = tidy(
+    props.data,
+    count(props.x, { name: "count" }),
+    arrange(sort)
+  );
+
+  const scaleX = useMemo(
+    () =>
+      scaleBand()
+        .range([PADDING, props.width - PADDING])
+        .domain(countData.map((d) => d[props.x]))
+        .padding(0.1),
+    [countData, props]
+  );
+
+  const scaleY = useMemo(
+    () =>
+      scaleLinear()
+        .range([HEIGHT - PADDING, PADDING])
+        .domain([0, max(countData, yAcessor)]),
+    [countData]
+  );
 
   return (
     <svg
@@ -32,7 +59,7 @@ export default function Histogram(props) {
       >
         {props.x}
       </text>
-      {props.data.map((d) => (
+      {countData.map((d) => (
         <g key={`${d[props.x]}`}>
           <Bar
             key={`bar-${d[props.x]}`}
